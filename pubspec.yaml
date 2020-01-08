@@ -1,0 +1,26 @@
+name: flutter_time_table
+description: A new Flutter application.
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.1.0 <3.0.0"
+
+dependencies:
+  sqflite: ^1.1.7+3
+  path: ^1.6.4
+  synchronized: ^2.1.0+2
+  shared_preferences: ^0.5.4+6
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^0.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+flutter:
+
+  uses-material-design: true
