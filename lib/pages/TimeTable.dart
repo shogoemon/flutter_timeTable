@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import './EditSubect.dart';
 import '../db/Database.dart';
 import './Settings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import './SettingData.dart';
 
 class TimeTablePage extends StatefulWidget {
   TimeTablePage(this.sizes);
@@ -12,6 +14,7 @@ class TimeTablePage extends StatefulWidget {
 
 class _TimeTablePageState extends State<TimeTablePage> {
   _TimeTablePageState(this.sizes);
+  SharedPreferences prefs;
   final sizes;
   List<String> week = ['月', '火', '水', '木', '金', '土'];
   List<TableRow> tableView = [];
@@ -19,7 +22,19 @@ class _TimeTablePageState extends State<TimeTablePage> {
     child: Text('loading...'),
   );
   List<List<Map<String, dynamic>>> cellInfoList;
-  int subjectNum = 7;
+
+  Future<int> loadSettings()async{
+    prefs = await SharedPreferences.getInstance();
+    SettingData.subjectNum=prefs.getInt("subjectNum");
+    SettingData.subjectNum??=5;
+    SettingData.weekNames.forEach(
+            (dayName){
+          bool dispBool=prefs.getBool(dayName+'dispBool');
+          dispBool??=true;
+          SettingData.dispDaysBool.add(dispBool);
+        });
+    return 0;
+  }
 
   @override
   void initState() {
@@ -32,10 +47,11 @@ class _TimeTablePageState extends State<TimeTablePage> {
   Future<bool> loadTimeTable() async {
     await TimeTableDB.connectDB();
     List<Map<String, dynamic>> subjectInfos = await TimeTableDB.getTableData();
+    await loadSettings();
 
     cellInfoList = new List.generate(
         week.length,
-        (i) => List.generate(subjectNum, (j) {
+        (i) => List.generate(SettingData.subjectNum, (j) {
 //            print('i:'+i.toString());
 //            print('j:'+j.toString());
               return {
@@ -48,8 +64,10 @@ class _TimeTablePageState extends State<TimeTablePage> {
             }));
 
     subjectInfos.forEach((subInfo) {
-      cellInfoList[week.indexOf(subInfo['week'])][subInfo['period'] - 1] =
-          subInfo;
+      //todo 最初のデータ取得の際、whereを使ってperiodの値がsubjectNum以下のデータのみを取得に変更する
+      if(subInfo['period'] - 1<SettingData.subjectNum){
+        cellInfoList[week.indexOf(subInfo['week'])][subInfo['period'] - 1] = subInfo;
+      }
     });
     return true;
   }
@@ -63,7 +81,7 @@ class _TimeTablePageState extends State<TimeTablePage> {
     });
     tableList.add(TableRow(children: weekRowList));
     //縦のループ
-    for (var i = 0; i < subjectNum; i++) {
+    for (var i = 0; i < SettingData.subjectNum; i++) {
       weekRowList = [];
       weekRowList.add(numCell(i));
       //横のループ
@@ -101,20 +119,21 @@ class _TimeTablePageState extends State<TimeTablePage> {
                 .push(MaterialPageRoute(
                     builder: (context) =>
                         EditSubjectPage(today, (num + 1).toString())))
-                .then((changedInfoList) {
-              if (changedInfoList != null) {
-                cellInfoList[week.indexOf(changedInfoList[0])]
-                [int.parse(changedInfoList[1]) - 1] = {
-                  'week': changedInfoList[0],
-                  'period': changedInfoList[1],
-                  'subject': changedInfoList[2],
-                  'teacher': changedInfoList[3],
-                  'room': changedInfoList[4]
+                .then((value) {
+              // todo 画面更新後にsubjectNumのデータの保存、subjectNumと表示曜日を変更した際でSettngDataのboolを分ける？
+              if (SettingData.reloadBool) {
+                cellInfoList[week.indexOf(SettingData.changedInfoList[0])]
+                [int.parse(SettingData.changedInfoList[1]) - 1] = {
+                  'week': SettingData.changedInfoList[0],
+                  'period': SettingData.changedInfoList[1],
+                  'subject': SettingData.changedInfoList[2],
+                  'teacher': SettingData.changedInfoList[3],
+                  'room': SettingData.changedInfoList[4]
                 };
                 setState(() {
                   setCell();
-                  print(week.indexOf(changedInfoList[0]));
                 });
+                SettingData.reloadBool=false;
               }
             });
           },
@@ -212,11 +231,16 @@ class _TimeTablePageState extends State<TimeTablePage> {
                     .push(MaterialPageRoute(
                     builder: (context) =>
                         SettingPage()))
-                    .then((changedInfoList) {
-                  if (changedInfoList != null) {
-//                    setState(() {
-//                      setCell();
-//                    });
+                    .then((value) {
+//                  print(SettingData.reloadBool.toString());
+                  if (SettingData.reloadBool) {
+                    prefs.setInt('subjectNum', SettingData.subjectNum);
+                    loadTimeTable().then((res) {
+                      setState(() {
+                        setCell();
+                      });
+                    });
+                    SettingData.reloadBool=false;
                   }
                 });
               },

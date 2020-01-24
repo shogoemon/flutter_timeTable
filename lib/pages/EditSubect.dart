@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../db/Database.dart';
+import './SettingData.dart';
 
 class EditSubjectPage extends StatefulWidget {
   EditSubjectPage(this.week, this.num);
@@ -72,6 +73,8 @@ class _SaveButtonFormState extends State<SaveButtonForm> {
             child: Text('Save'),
             onPressed: () async {
               List<String> subjectInfo = [week, num] + getInputData();
+              SettingData.reloadBool=true;
+              SettingData.changedInfoList=subjectInfo;
               if (checkDataExist()) {
                 TimeTableDB.updateData(
                     week: subjectInfo[0],

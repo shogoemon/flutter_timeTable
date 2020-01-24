@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import './pages/TimeTable.dart';
-import './pages/EditSubect.dart';
+//import './pages/EditSubect.dart';
 
 void main() => runApp(MyApp());
 
